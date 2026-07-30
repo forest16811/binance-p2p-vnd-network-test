@@ -94,7 +94,7 @@ async function receiveTelegramUpdate(request, env) {
     await sendMessage(
       env.BOT_TOKEN,
       chatId,
-      "正在查询 Binance 越南盾购买 USDT 的实时前10名，请稍候（通常需要10～60秒）。",
+      "正在查询 Binance 越南盾购买 USDT 的实时前10名，请稍候。",
     );
   } catch (error) {
     const reason = error?.message ?? String(error);
@@ -141,7 +141,7 @@ async function receiveGitHubResult(request, env) {
     return new Response("Missing chat_id or text", { status: 400 });
   }
 
-  await sendMessage(env.BOT_TOKEN, chatId, text);
+  await sendMessage(env.BOT_TOKEN, chatId, text, "HTML");
   return Response.json({ ok: true, requestId: result?.request_id ?? null });
 }
 
@@ -177,7 +177,7 @@ async function dispatchGitHubWorkflow(token, chatId, requestId) {
   }
 }
 
-async function sendMessage(token, chatId, text) {
+async function sendMessage(token, chatId, text, parseMode = null) {
   if (!token) {
     throw new Error("BOT_TOKEN is missing");
   }
@@ -191,6 +191,7 @@ async function sendMessage(token, chatId, text) {
         chat_id: chatId,
         text,
         disable_web_page_preview: true,
+        ...(parseMode ? { parse_mode: parseMode } : {}),
       }),
     },
   );
