@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Query Binance and reply to Telegram
+      - name: Query Binance and return result
         env:
           CHAT_ID: ${{ github.event.inputs.chat_id }}
           REQUEST_ID: ${{ github.event.inputs.request_id }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CALLBACK_SECRET: ${{ secrets.CALLBACK_SECRET }}
         run: python scripts/binance_lookup.py
