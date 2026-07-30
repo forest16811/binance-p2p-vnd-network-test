@@ -1,17 +1,31 @@
-name: Binance P2P VND Network Test
+name: Binance P2P VND On-Demand Lookup
 
 on:
   workflow_dispatch:
+    inputs:
+      chat_id:
+        description: Telegram chat ID
+        required: true
+        type: string
+      request_id:
+        description: Request identifier
+        required: true
+        type: string
 
 jobs:
-  test-binance:
+  query-and-reply:
     runs-on: ubuntu-latest
     steps:
-      - name: Query Binance P2P VND USDT
+      - name: Query Binance and return result
         shell: bash
+        env:
+          CHAT_ID: ${{ inputs.chat_id }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLBACK_SECRET: ${{ secrets.CALLBACK_SECRET }}
         run: |
           node <<'NODE'
-          const url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
+          const endpoint = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
+          const workerCallback = 'https://binance-vnd-telegram-bot.forest16811.workers.dev/github-result';
           const payload = {
             page: 1,
             rows: 10,
@@ -22,31 +36,65 @@ jobs:
             fiat: 'VND',
             tradeType: 'BUY'
           };
-          const response = await fetch(url, {
+
+          let replyText;
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'accept': 'application/json, text/plain, */*',
+                'origin': 'https://p2p.binance.com',
+                'referer': 'https://p2p.binance.com/',
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36'
+              },
+              body: JSON.stringify(payload)
+            });
+            const raw = await response.text();
+            console.log('BINANCE_HTTP_STATUS=' + response.status);
+            if (!response.ok) throw new Error('Binance HTTP ' + response.status + ': ' + raw.slice(0, 200));
+
+            const data = JSON.parse(raw);
+            const quotes = (data.data || []).slice(0, 10).map((item) => ({
+              price: Number(item.adv?.price),
+              merchant: String(item.advertiser?.nickName || '')
+            })).filter((item) => Number.isFinite(item.price) && item.merchant)
+              .sort((a, b) => a.price - b.price);
+            if (!quotes.length) throw new Error('Binance returned no usable advertisements');
+
+            const now = new Intl.DateTimeFormat('zh-CN', {
+              timeZone: 'Asia/Shanghai',
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', second: '2-digit',
+              hour12: false
+            }).format(new Date());
+            const lines = ['Binance商家实时越南盾购买USDT Top10', '查询时间：' + now, ''];
+            quotes.forEach((quote, index) => {
+              lines.push((index + 1) + ')  ' + Math.round(quote.price).toLocaleString('en-US') + '  ' + quote.merchant);
+            });
+            replyText = lines.join('
+');
+          } catch (error) {
+            replyText = 'Binance报价暂时无法获取，请稍后再试。
+错误信息：' + (error?.message || String(error));
+          }
+
+          const callbackResponse = await fetch(workerCallback, {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
-              'accept': 'application/json, text/plain, */*',
-              'origin': 'https://p2p.binance.com',
-              'referer': 'https://p2p.binance.com/',
-              'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36'
+              'x-callback-secret': process.env.CALLBACK_SECRET
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+              chat_id: process.env.CHAT_ID,
+              request_id: process.env.REQUEST_ID,
+              text: replyText
+            })
           });
-          const text = await response.text();
-          console.log('HTTP_STATUS=' + response.status);
-          console.log('CONTENT_TYPE=' + (response.headers.get('content-type') || ''));
-          if (!response.ok) {
-            console.log('RESPONSE=' + text.slice(0, 1000));
+          const callbackText = await callbackResponse.text();
+          console.log('CALLBACK_HTTP_STATUS=' + callbackResponse.status);
+          if (!callbackResponse.ok) {
+            console.log(callbackText.slice(0, 500));
             process.exit(1);
           }
-          const json = JSON.parse(text);
-          const rows = (json.data || []).slice(0, 10).map((item, index) => ({
-            rank: index + 1,
-            price: item.adv?.price,
-            merchant: item.advertiser?.nickName
-          }));
-          console.log('RESULT_COUNT=' + rows.length);
-          console.log(JSON.stringify(rows, null, 2));
-          if (!rows.length) process.exit(2);
           NODE
