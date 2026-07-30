@@ -30,7 +30,7 @@ try:
     if not quotes:
         raise RuntimeError('Binance returned no usable advertisements')
     now = datetime.now(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    lines = ['🇻🇳 Binance VND 买入 USDT｜TOP 10', f'🕒 {now}', '', '排名  价格          商家']
+    lines = ['🇻🇳 Binance VND 买入 USDT｜TOP 10', f'🕒 {now}', '排名  价格          商家']
     medals = ['🥇', '🥈', '🥉']
     for index, (price, merchant) in enumerate(quotes, 1):
         rank = medals[index - 1] if index <= 3 else f'{index:02d}'
