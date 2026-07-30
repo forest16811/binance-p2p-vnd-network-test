@@ -30,9 +30,14 @@ try:
     if not quotes:
         raise RuntimeError('Binance returned no usable advertisements')
     now = datetime.now(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    lines = ['Binance商家实时越南盾购买USDT Top10', f'查询时间：{now}', '']
+    lines = ['🇻🇳 Binance VND 买入 USDT｜TOP 10', f'🕒 {now}', '']
+    medals = ['🥇', '🥈', '🥉']
     for index, (price, merchant) in enumerate(quotes, 1):
-        lines.append(f'{index}) {price:,.0f}  {merchant}')
+        rank = medals[index - 1] if index <= 3 else f'{index:02d}'
+        lines.append(f'{rank}  {price:,.0f} VND  {merchant}')
+    low_price = quotes[0][0]
+    high_price = quotes[-1][0]
+    lines.extend(['', f'📌 1 USDT ≈ {low_price:,.0f}–{high_price:,.0f} VND', '📊 价格由低到高排列'])
     reply_text = '\n'.join(lines)
 except Exception as error:
     reply_text = f'Binance报价暂时无法获取，请稍后再试。\n错误信息：{error}'
