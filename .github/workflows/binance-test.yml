@@ -1,0 +1,52 @@
+name: Binance P2P VND Network Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-binance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Binance P2P VND USDT
+        shell: bash
+        run: |
+          node <<'NODE'
+          const url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
+          const payload = {
+            page: 1,
+            rows: 10,
+            payTypes: [],
+            countries: [],
+            publisherType: null,
+            asset: 'USDT',
+            fiat: 'VND',
+            tradeType: 'BUY'
+          };
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'accept': 'application/json, text/plain, */*',
+              'origin': 'https://p2p.binance.com',
+              'referer': 'https://p2p.binance.com/',
+              'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36'
+            },
+            body: JSON.stringify(payload)
+          });
+          const text = await response.text();
+          console.log('HTTP_STATUS=' + response.status);
+          console.log('CONTENT_TYPE=' + (response.headers.get('content-type') || ''));
+          if (!response.ok) {
+            console.log('RESPONSE=' + text.slice(0, 1000));
+            process.exit(1);
+          }
+          const json = JSON.parse(text);
+          const rows = (json.data || []).slice(0, 10).map((item, index) => ({
+            rank: index + 1,
+            price: item.adv?.price,
+            merchant: item.advertiser?.nickName
+          }));
+          console.log('RESULT_COUNT=' + rows.length);
+          console.log(JSON.stringify(rows, null, 2));
+          if (!rows.length) process.exit(2);
+          NODE
