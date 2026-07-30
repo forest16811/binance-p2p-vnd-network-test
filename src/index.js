@@ -141,7 +141,7 @@ async function receiveGitHubResult(request, env) {
     return new Response("Missing chat_id or text", { status: 400 });
   }
 
-  await sendMessage(env.BOT_TOKEN, chatId, text);
+  await sendMessage(env.BOT_TOKEN, chatId, text, "HTML");
   return Response.json({ ok: true, requestId: result?.request_id ?? null });
 }
 
