@@ -20,7 +20,10 @@ export default {
       return setupTelegramWebhook(url, env);
     }
 
-    if (request.method === "POST" && url.pathname === "/github-result") {
+    if (
+      (request.method === "POST" || request.method === "GET") &&
+      url.pathname === "/github-result"
+    ) {
       return receiveGitHubResult(request, env);
     }
 
@@ -107,18 +110,29 @@ async function receiveTelegramUpdate(request, env) {
 }
 
 async function receiveGitHubResult(request, env) {
+  const url = new URL(request.url);
+  const suppliedSecret =
+    request.headers.get("X-Callback-Secret") ?? url.searchParams.get("secret");
   if (
     !env.CALLBACK_SECRET ||
-    request.headers.get("X-Callback-Secret") !== env.CALLBACK_SECRET
+    suppliedSecret !== env.CALLBACK_SECRET
   ) {
     return new Response("Unauthorized", { status: 401 });
   }
 
   let result;
-  try {
-    result = await request.json();
-  } catch {
-    return new Response("Bad request", { status: 400 });
+  if (request.method === "GET") {
+    result = {
+      chat_id: url.searchParams.get("chat_id"),
+      request_id: url.searchParams.get("request_id"),
+      text: url.searchParams.get("text"),
+    };
+  } else {
+    try {
+      result = await request.json();
+    } catch {
+      return new Response("Bad request", { status: 400 });
+    }
   }
 
   const chatId = String(result?.chat_id ?? "");
