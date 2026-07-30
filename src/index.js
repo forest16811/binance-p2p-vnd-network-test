@@ -94,7 +94,7 @@ async function receiveTelegramUpdate(request, env) {
     await sendMessage(
       env.BOT_TOKEN,
       chatId,
-      "正在查询 Binance 越南盾购买 USDT 的实时前10名，请稍候。",
+      "🔍 正在查询 Binance 越南盾买入 USDT 的实时前10名，请稍候…",
     );
   } catch (error) {
     const reason = error?.message ?? String(error);
@@ -141,7 +141,7 @@ async function receiveGitHubResult(request, env) {
     return new Response("Missing chat_id or text", { status: 400 });
   }
 
-  await sendMessage(env.BOT_TOKEN, chatId, text, "HTML");
+  await sendMessage(env.BOT_TOKEN, chatId, text);
   return Response.json({ ok: true, requestId: result?.request_id ?? null });
 }
 
