@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import urllib.parse
@@ -30,15 +31,13 @@ try:
     if not quotes:
         raise RuntimeError('Binance returned no usable advertisements')
     now = datetime.now(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    lines = ['🇻🇳 Binance VND 买入 USDT｜TOP 10', f'🕒 {now}', '排名  价格          商家']
-    medals = ['🥇', '🥈', '🥉']
+    header = f'🇻🇳 Binance VND 买入 USDT｜TOP 10\n🕒 {now}'
+    table_lines = ['排名  价格          商家']
     for index, (price, merchant) in enumerate(quotes, 1):
-        rank = medals[index - 1] if index <= 3 else f'{index:02d}'
-        spaces = '   ' if index <= 3 else '    '
-        lines.append(f'{rank}{spaces}{price:,.0f} VND │ {merchant}')
-    reply_text = '\n'.join(lines)
+        table_lines.append(f'{index:02d}    {price:,.0f} VND   │ {merchant}')
+    reply_text = header + '\n\n<pre>' + html.escape('\n'.join(table_lines)) + '</pre>'
 except Exception as error:
-    reply_text = f'Binance报价暂时无法获取，请稍后再试。\n错误信息：{error}'
+    reply_text = html.escape(f'Binance报价暂时无法获取，请稍后再试。\n错误信息：{error}')
 
 params = urllib.parse.urlencode({'secret': os.environ['CALLBACK_SECRET'], 'chat_id': os.environ['CHAT_ID'], 'request_id': os.environ['REQUEST_ID'], 'text': reply_text})
 request = urllib.request.Request(CALLBACK_URL + '?' + params, headers={'User-Agent': 'Mozilla/5.0 GitHub-Actions-Binance-VND-Bot/1.0'}, method='GET')
