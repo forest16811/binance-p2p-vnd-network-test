@@ -5,10 +5,9 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 BINANCE_URL = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search'
-CALLBACK_URL = 'https://binance-vnd-telegram-bot.forest16811.workers.dev/github-result'
 
 def post_json(url, payload, headers):
-    data = json.dumps(payload).encode('utf-8')
+    data = json.dumps(payload, ensure_ascii=False).encode('utf-8')
     request = urllib.request.Request(url, data=data, headers=headers, method='POST')
     with urllib.request.urlopen(request, timeout=30) as response:
         return response.status, response.read().decode('utf-8')
@@ -36,8 +35,8 @@ try:
 except Exception as error:
     reply_text = f'Binance报价暂时无法获取，请稍后再试。\n错误信息：{error}'
 
-callback_payload = {'chat_id': os.environ['CHAT_ID'], 'request_id': os.environ['REQUEST_ID'], 'text': reply_text}
-callback_headers = {'Content-Type': 'application/json', 'x-callback-secret': os.environ['CALLBACK_SECRET']} 
-status, raw = post_json(CALLBACK_URL, callback_payload, callback_headers)
-print(f'CALLBACK_HTTP_STATUS={status}')
+telegram_url = f"https://api.telegram.org/bot{os.environ['BOT_TOKEN']}/sendMessage"
+telegram_payload = {'chat_id': os.environ['CHAT_ID'], 'text': reply_text, 'disable_web_page_preview': True}
+status, raw = post_json(telegram_url, telegram_payload, {'Content-Type': 'application/json', 'User-Agent': 'Binance-VND-GitHub-Bot/1.0'})
+print(f'TELEGRAM_HTTP_STATUS={status}')
 print(raw[:500])
