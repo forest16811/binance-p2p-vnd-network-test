@@ -12,4 +12,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 024af0a87d45dc9075ca8fa330b650a3
-          command: deploy
+          command: deploy src/index.js --name binance-vnd-telegram-bot --compatibility-date 2026-07-30
